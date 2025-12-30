@@ -5,51 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arsip Digital Abadi</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
-        .box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; text-align: center; }
-        .upload-area { border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 15px; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f0f2f5; color: #333; }
+        .box { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; margin-bottom: 20px; }
+        .upload-section { background: #fafafa; border: 2px dashed #ccd1d9; padding: 20px; border-radius: 12px; margin-bottom: 30px; }
         input, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
-        .btn-main { background: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
-        .file-item { background: #fff; padding: 15px; border: 1px solid #eee; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .btn-upload { background: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; font-size: 16px; }
+        .btn-upload:hover { background: #1557b0; }
+        
+        .file-item { 
+            background: #fff; padding: 15px; border: 1px solid #eee; border-radius: 12px;
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+        .file-name { font-weight: bold; font-size: 14px; color: #2c3e50; max-width: 180px; overflow: hidden; text-overflow: ellipsis; }
+        .actions { display: flex; gap: 8px; }
         .btn-dl { background: #34a853; color: white; padding: 8px 12px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; }
-        .btn-del { background: #ea4335; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; }
-        #status { text-align: center; font-weight: bold; font-size: 13px; }
+        .btn-del { background: #ea4335; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; font-weight: bold; }
+        #status { text-align: center; font-weight: bold; font-size: 13px; margin-top: 10px; }
+        .refresh-btn { background: #6c757d; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 11px; width: auto; }
     </style>
 </head>
 <body>
 
 <div class="box">
     <h2>📁 Arsip Digital Saya</h2>
-    <div class="upload-area">
+    
+    <div class="upload-section">
         <input type="file" id="pilih-file">
-        <input type="text" id="nama-file" placeholder="Beri nama file...">
-        <button class="btn-main" onclick="uploadKeCloud()">SIMPAN PERMANEN</button>
+        <input type="text" id="nama-file" placeholder="Beri nama file (Contoh: Ijazah_SMA)">
+        <button class="btn-upload" onclick="uploadKeCloud()">SIMPAN KE ARSIP</button>
         <p id="status"></p>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>Daftar File:</h3>
-        <button onclick="muatDaftarFile()" style="width:auto; padding:5px 10px; font-size:11px;">🔄 Segarkan</button>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <h3 style="margin:0; font-size: 16px;">Daftar Arsip:</h3>
+        <button class="refresh-btn" onclick="muatDaftarFile()">🔄 Segarkan</button>
     </div>
-    <div id="daftar-file-container"></div>
+    
+    <div id="daftar-file-container">
+        <p style="text-align: center; color: #999;">Memuat data...</p>
+    </div>
 </div>
 
 <script>
+    // DATA CLOUDINARY ANDA
     const CLOUD_NAME = "doa3owxki"; 
     const UPLOAD_PRESET = "arsipsaya";
-    
-    // Objek untuk menyimpan token hapus sementara
-    let deleteTokens = JSON.parse(localStorage.getItem('del_tokens') || '{}');
 
+    // Menyimpan kunci hapus di memori browser agar bisa hapus langsung
+    let storageHapus = JSON.parse(localStorage.getItem('kunci_hapus') || '{}');
+
+    // 1. FUNGSI UPLOAD
     async function uploadKeCloud() {
         const fileInput = document.getElementById('pilih-file');
         const namaInput = document.getElementById('nama-file');
         const status = document.getElementById('status');
 
-        if (!fileInput.files[0] || !namaInput.value) return alert("Lengkapi data!");
+        if (!fileInput.files[0] || !namaInput.value) {
+            alert("Harap pilih file dan beri nama!");
+            return;
+        }
 
-        status.innerText = "⏳ Menyimpan...";
+        status.innerText = "⏳ Sedang mengunggah...";
+        status.style.color = "blue";
+
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
         formData.append('upload_preset', UPLOAD_PRESET);
@@ -64,60 +84,91 @@
             const data = await res.json();
 
             if (res.ok) {
-                status.innerText = "✅ Tersimpan!";
-                // Simpan token hapus ke browser
-                deleteTokens[data.public_id] = data.delete_token;
-                localStorage.setItem('del_tokens', JSON.stringify(deleteTokens));
+                status.innerText = "✅ BERHASIL TERSIMPAN!";
+                status.style.color = "green";
                 
+                // Simpan token untuk hapus nanti
+                storageHapus[data.public_id] = data.delete_token;
+                localStorage.setItem('kunci_hapus', JSON.stringify(storageHapus));
+
+                namaInput.value = "";
+                fileInput.value = "";
                 setTimeout(muatDaftarFile, 2000);
+            } else {
+                status.innerText = "❌ Gagal: " + (data.error ? data.error.message : "Cek pengaturan Cloudinary");
             }
-        } catch (err) { status.innerText = "❌ Gagal!"; }
+        } catch (err) {
+            status.innerText = "❌ Kesalahan Koneksi.";
+        }
     }
 
+    // 2. FUNGSI MUAT DAFTAR
     async function muatDaftarFile() {
         const container = document.getElementById('daftar-file-container');
+        const timestamp = new Date().getTime();
+        
         try {
-            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json?cb=${Date.now()}`);
+            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json?cb=${timestamp}`);
+            
+            if (!res.ok) {
+                container.innerHTML = "<p style='text-align:center;'>Gudang masih kosong.</p>";
+                return;
+            }
+            
             const data = await res.json();
             container.innerHTML = ""; 
 
             data.resources.forEach(file => {
-                const downloadUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${file.public_id}.${file.format}`;
+                const downloadUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/v${file.version}/${file.public_id}.${file.format}`;
                 const item = document.createElement('div');
                 item.className = 'file-item';
                 item.innerHTML = `
-                    <span style="font-weight:bold;">${file.public_id}</span>
-                    <div>
+                    <span class="file-name">${file.public_id}</span>
+                    <div class="actions">
                         <a href="${downloadUrl}" class="btn-dl" target="_blank">LIHAT</a>
-                        <button class="btn-del" onclick="hapusFileLangsung('${file.public_id}')">HAPUS</button>
-                    </div>`;
+                        <button class="btn-del" onclick="hapusFilePermanen('${file.public_id}')">HAPUS</button>
+                    </div>
+                `;
                 container.appendChild(item);
             });
-        } catch (err) { container.innerHTML = "Gagal memuat."; }
+        } catch (err) {
+            container.innerHTML = "<p style='text-align:center; color:red; font-size:12px;'>Gagal memuat. Pastikan 'Resource List' di Cloudinary Unchecked.</p>";
+        }
     }
 
-    async function hapusFileLangsung(publicId) {
-        const token = deleteTokens[publicId];
-        if (!token) return alert("Maaf, file ini hanya bisa dihapus lewat Dashboard Cloudinary demi keamanan.");
+    // 3. FUNGSI HAPUS LANGSUNG
+    async function hapusFilePermanen(publicId) {
+        const token = storageHapus[publicId];
         
-        if (confirm(`Hapus permanen "${publicId}"?`)) {
+        if (!token) {
+            alert("File ini hanya bisa dihapus manual lewat Dashboard Cloudinary demi keamanan arsip.");
+            return;
+        }
+
+        if (confirm(`Hapus permanen file "${publicId}"?`)) {
             try {
                 const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/delete_by_token`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ token: token })
                 });
+
                 if (res.ok) {
-                    alert("Berhasil dihapus!");
-                    delete deleteTokens[publicId];
-                    localStorage.setItem('del_tokens', JSON.stringify(deleteTokens));
+                    alert("File berhasil dihapus!");
+                    delete storageHapus[publicId];
+                    localStorage.setItem('kunci_hapus', JSON.stringify(storageHapus));
                     muatDaftarFile();
+                } else {
+                    alert("Gagal menghapus. Token mungkin sudah kedaluwarsa.");
                 }
-            } catch (err) { alert("Gagal menghapus."); }
+            } catch (err) {
+                alert("Kesalahan saat menghapus.");
+            }
         }
     }
 
     window.onload = muatDaftarFile;
 </script>
+
 </body>
 </html>
