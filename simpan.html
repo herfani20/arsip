@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arsip Pribadi Abadi</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        .box { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; text-align: center; }
+        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        button { background: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
+        button:hover { background: #1557b0; }
+        .file-item { background: #fff; padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .dl-btn { background: #34a853; color: white; padding: 5px 10px; text-decoration: none; border-radius: 5px; font-size: 12px; }
+        #status { text-align: center; font-weight: bold; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div class="box">
+    <h2>📁 Arsip Digital Saya</h2>
+    
+    <div style="border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px;">
+        <input type="file" id="pilih-file">
+        <input type="text" id="nama-file" placeholder="Nama file (Contoh: Ijazah_SMA)">
+        <button onclick="uploadKeCloud()">Simpan ke Arsip</button>
+        <p id="status"></p>
+    </div>
+
+    <h3>Daftar File:</h3>
+    <div id="daftar-file">
+        </div>
+</div>
+
+<script>
+    // --- ISI DATA ANDA DI SINI ---
+    const CLOUD_NAME = "doa3owxki"; 
+    const UPLOAD_PRESET = "arsipsaya";
+    // ----------------------------
+
+    async function uploadKeCloud() {
+        const fileInput = document.getElementById('pilih-file');
+        const namaInput = document.getElementById('nama-file');
+        const status = document.getElementById('status');
+        const daftar = document.getElementById('daftar-file');
+
+        if (!fileInput.files[0] || !namaInput.value) {
+            alert("Pilih file dan beri nama!");
+            return;
+        }
+
+        status.innerText = "⏳ Sedang menyimpan...";
+        status.style.color = "blue";
+
+        const formData = new FormData();
+        formData.append('file', fileInput.files[0]);
+        formData.append('upload_preset', UPLOAD_PRESET);
+        formData.append('public_id', namaInput.value); 
+
+        try {
+            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                status.innerText = "✅ Tersimpan!";
+                status.style.color = "green";
+                
+                // Tambah ke daftar tampilan
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `<span>${namaInput.value}</span> <a href="${data.secure_url}" class="dl-btn" target="_blank">Download</a>`;
+                daftar.appendChild(item);
+
+                // Reset form
+                namaInput.value = "";
+                fileInput.value = "";
+            } else {
+                status.innerText = "❌ Gagal Upload";
+            }
+        } catch (err) {
+            status.innerText = "❌ Error Koneksi";
+        }
+    }
+</script>
+
+</body>
+</html>
