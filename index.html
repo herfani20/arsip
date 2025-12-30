@@ -61,28 +61,25 @@
 
 <script>
     // DATA CLOUDINARY ANDA
-    const CLOUD_NAME = "doa3owxki"; 
+   const CLOUD_NAME = "doa3owxki"; 
     const UPLOAD_PRESET = "arsipsaya";
 
-    // FUNGSI UNGGAH
     async function uploadKeCloud() {
         const fileInput = document.getElementById('pilih-file');
         const namaInput = document.getElementById('nama-file');
         const status = document.getElementById('status');
 
         if (!fileInput.files[0] || !namaInput.value) {
-            alert("Harap pilih file dan beri nama terlebih dahulu!");
+            alert("Pilih file & isi nama!");
             return;
         }
 
-        status.innerText = "⏳ Sedang memproses... jangan tutup halaman.";
-        status.style.color = "#f39c12";
-
+        status.innerText = "⏳ Menyimpan...";
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
         formData.append('upload_preset', UPLOAD_PRESET);
         formData.append('public_id', namaInput.value); 
-        formData.append('tags', 'arsip_pribadi'); 
+        formData.append('tags', 'arsip_pribadi'); // KUNCI DAFTAR
 
         try {
             const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
@@ -91,32 +88,29 @@
             });
 
             if (res.ok) {
-                status.innerText = "✅ BERHASIL! File telah diarsipkan.";
-                status.style.color = "#27ae60";
-                namaInput.value = "";
-                fileInput.value = "";
-                // Segarkan daftar setelah sukses
-                setTimeout(muatDaftarFile, 2000);
+                status.innerText = "✅ BERHASIL TERSIMPAN!";
+                status.style.color = "green";
+                setTimeout(muatDaftarFile, 2000); // Segarkan daftar
             } else {
-                status.innerText = "❌ GAGAL! Pastikan setting Security Cloudinary sudah benar.";
-                status.style.color = "#e74c3c";
+                const errData = await res.json();
+                status.innerText = "❌ Gagal: " + errData.error.message;
             }
         } catch (err) {
-            status.innerText = "❌ Terjadi kesalahan jaringan.";
-            status.style.color = "#e74c3c";
+            status.innerText = "❌ Masalah Koneksi";
         }
     }
 
-    // FUNGSI AMBIL DAFTAR FILE
     async function muatDaftarFile() {
         const container = document.getElementById('daftar-file-container');
-        const cb = new Date().getTime(); // Mencegah cache browser
+        // Cache Buster untuk memaksa data terbaru
+        const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json?nocache=${new Date().getTime()}`;
         
         try {
-            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json?cb=${cb}`);
+            const res = await fetch(url);
             
             if (!res.ok) {
-                container.innerHTML = "<p class='loader'>Belum ada file. Mulailah mengunggah!</p>";
+                // Jika error 404, artinya belum ada file dengan tag tersebut
+                container.innerHTML = "<p style='text-align:center; color:#888;'>Belum ada daftar. Coba upload 1 file baru dengan nama berbeda.</p>";
                 return;
             }
             
@@ -124,7 +118,7 @@
             container.innerHTML = ""; 
 
             if (data.resources.length === 0) {
-                container.innerHTML = "<p class='loader'>Gudang kosong.</p>";
+                container.innerHTML = "<p style='text-align:center;'>Daftar kosong.</p>";
                 return;
             }
 
@@ -139,14 +133,13 @@
                 container.appendChild(item);
             });
         } catch (err) {
-            container.innerHTML = "<div style='color:#e74c3c; font-size:12px; text-align:center; padding:20px;'>" +
-                "⚠️ Gagal memuat daftar.<br>Pastikan di Cloudinary: <b>Settings > Security > Hapus Centang 'Resource List'</b></div>";
+            container.innerHTML = "<p style='text-align:center; color:red; font-size:12px;'>⚠️ Gagal memuat daftar. Pastikan opsi 'Resource List' di Security Cloudinary SUDAH DIMATIKAN.</p>";
         }
     }
 
-    // Jalankan saat pertama kali dibuka
     window.onload = muatDaftarFile;
 </script>
 
 </body>
 </html>
+
