@@ -11,9 +11,11 @@
         input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
         button { background: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
         button:hover { background: #1557b0; }
-        .file-item { background: #fff; padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-        .dl-btn { background: #34a853; color: white; padding: 5px 10px; text-decoration: none; border-radius: 5px; font-size: 12px; }
+        .file-item { background: #fff; padding: 12px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; border-radius: 8px; margin-bottom: 5px; }
+        .file-item:hover { background-color: #f9f9f9; }
+        .dl-btn { background: #34a853; color: white; padding: 6px 12px; text-decoration: none; border-radius: 5px; font-size: 13px; font-weight: bold; }
         #status { text-align: center; font-weight: bold; font-size: 14px; }
+        .refresh-btn { background: #6c757d; font-size: 12px; width: auto; padding: 5px 15px; }
     </style>
 </head>
 <body>
@@ -23,70 +25,100 @@
     
     <div style="border-bottom: 2px solid #eee; margin-bottom: 20px; padding-bottom: 10px;">
         <input type="file" id="pilih-file">
-        <input type="text" id="nama-file" placeholder="Nama file (Contoh: Ijazah_SMA)">
+        <input type="text" id="nama-file" placeholder="Beri nama file (Contoh: Ijazah_SMA)">
         <button onclick="uploadKeCloud()">Simpan ke Arsip</button>
         <p id="status"></p>
     </div>
 
-    <h3>Daftar File:</h3>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>Daftar File Saya:</h3>
+        <button class="refresh-btn" onclick="muatDaftarFile()">🔄 Segarkan</button>
+    </div>
     <div id="daftar-file">
-        </div>
+        <p style="text-align: center; color: #999;">Memuat file...</p>
+    </div>
 </div>
 
 <script>
-    // --- ISI DATA ANDA DI SINI ---
+    // DATA ANDA SUDAH DIPASANG
     const CLOUD_NAME = "doa3owxki"; 
     const UPLOAD_PRESET = "arsipsaya";
-    // ----------------------------
 
+    // 1. FUNGSI UNTUK UPLOAD
     async function uploadKeCloud() {
         const fileInput = document.getElementById('pilih-file');
         const namaInput = document.getElementById('nama-file');
         const status = document.getElementById('status');
-        const daftar = document.getElementById('daftar-file');
 
         if (!fileInput.files[0] || !namaInput.value) {
             alert("Pilih file dan beri nama!");
             return;
         }
 
-        status.innerText = "⏳ Sedang menyimpan...";
+        status.innerText = "⏳ Sedang menyimpan ke Cloud...";
         status.style.color = "blue";
 
         const formData = new FormData();
         formData.append('file', fileInput.files[0]);
         formData.append('upload_preset', UPLOAD_PRESET);
         formData.append('public_id', namaInput.value); 
+        formData.append('tags', 'arsip_pribadi'); // Tag untuk memudahkan pemanggilan daftar
 
         try {
             const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
                 method: 'POST',
                 body: formData
             });
-            const data = await res.json();
 
             if (res.ok) {
                 status.innerText = "✅ Tersimpan!";
                 status.style.color = "green";
-                
-                // Tambah ke daftar tampilan
-                const item = document.createElement('div');
-                item.className = 'file-item';
-                item.innerHTML = `<span>${namaInput.value}</span> <a href="${data.secure_url}" class="dl-btn" target="_blank">Download</a>`;
-                daftar.appendChild(item);
-
-                // Reset form
                 namaInput.value = "";
                 fileInput.value = "";
+                // Tunggu 2 detik lalu segarkan daftar
+                setTimeout(muatDaftarFile, 2000);
             } else {
-                status.innerText = "❌ Gagal Upload";
+                status.innerText = "❌ Gagal Upload. Pastikan Preset 'Unsigned'";
             }
         } catch (err) {
             status.innerText = "❌ Error Koneksi";
         }
     }
+
+    // 2. FUNGSI UNTUK MENAMPILKAN SEMUA FILE
+    async function muatDaftarFile() {
+        const daftar = document.getElementById('daftar-file');
+        
+        try {
+            // Mengambil daftar file dengan tag 'arsip_pribadi'
+            const res = await fetch(`https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json`);
+            
+            if (!res.ok) {
+                daftar.innerHTML = "<p style='text-align:center;'>Belum ada file. Silahkan upload file pertama Anda.</p>";
+                return;
+            }
+            
+            const data = await res.json();
+            daftar.innerHTML = ""; 
+
+            data.resources.forEach(file => {
+                const downloadUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/${file.public_id}.${file.format}`;
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span><strong>${file.public_id}</strong></span> 
+                    <a href="${downloadUrl}" class="dl-btn" target="_blank">Download</a>
+                `;
+                daftar.appendChild(item);
+            });
+        } catch (err) {
+            daftar.innerHTML = "<p style='text-align:center; color:red;'>Gagal memuat daftar. Klik Segarkan jika Anda sudah upload.</p>";
+        }
+    }
+
+    // Jalankan saat web dibuka
+    window.onload = muatDaftarFile;
 </script>
 
 </body>
-
 </html>
