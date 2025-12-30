@@ -5,32 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arsip Digital Abadi</title>
     <style>
-        /* CSS untuk tampilan yang bersih dan modern */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background: #f4f7f9; color: #333; }
+        body { font-family: 'Segoe UI', sans-serif; max-width: 650px; margin: 0 auto; padding: 20px; background: #f4f7f9; color: #333; }
         .box { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        h2 { color: #1a73e8; text-align: center; margin-bottom: 25px; }
-        
-        /* Area Input & Tombol */
+        h2 { color: #1a73e8; text-align: center; }
         .upload-area { background: #fafafa; border: 2px dashed #d1d9e0; padding: 20px; border-radius: 12px; margin-bottom: 30px; }
-        input[type="file"], input[type="text"] { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 14px; }
-        .btn-main { background: #1a73e8; color: white; border: none; padding: 14px; border-radius: 8px; font-weight: bold; cursor: pointer; width: 100%; transition: 0.3s; }
-        .btn-main:hover { background: #1557b0; }
-        
-        /* Area Daftar File */
-        .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 20px; }
-        .refresh-btn { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-        
+        input, button { width: 100%; padding: 12px; margin: 10px 0; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; }
+        .btn-main { background: #1a73e8; color: white; border: none; font-weight: bold; cursor: pointer; }
         .file-item { 
             background: #fff; padding: 15px; border: 1px solid #eee; border-radius: 10px;
-            display: flex; justify-content: space-between; align-items: center; margin-top: 10px;
-            transition: transform 0.2s;
+            display: flex; flex-direction: column; margin-top: 10px;
         }
-        .file-item:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.05); }
-        .file-name { font-weight: 600; color: #2c3e50; font-size: 14px; }
-        .dl-btn { background: #34a853; color: white; padding: 7px 15px; text-decoration: none; border-radius: 6px; font-size: 12px; font-weight: bold; }
-        
-        #status { text-align: center; font-weight: bold; font-size: 13px; margin-top: 10px; }
-        .loader { color: #888; text-align: center; padding: 20px; font-style: italic; }
+        .file-controls { display: flex; gap: 10px; margin-top: 10px; }
+        .dl-btn { background: #34a853; color: white; padding: 8px; text-decoration: none; border-radius: 6px; flex: 1; text-align: center; font-size: 13px; font-weight: bold; }
+        .del-btn { background: #e74c3c; color: white; border: none; padding: 8px; border-radius: 6px; flex: 1; cursor: pointer; font-size: 13px; font-weight: bold; }
+        #status { text-align: center; font-weight: bold; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -39,38 +27,34 @@
     <h2>📁 Arsip Digital Saya</h2>
     
     <div class="upload-area">
-        <label style="font-size: 13px; font-weight: bold; color: #666;">Pilih Dokumen/Foto:</label>
         <input type="file" id="pilih-file">
-        
-        <label style="font-size: 13px; font-weight: bold; color: #666;">Nama Simpanan:</label>
-        <input type="text" id="nama-file" placeholder="Contoh: Akta_Kelahiran_Asli">
-        
-        <button class="btn-main" onclick="uploadKeCloud()">🚀 SIMPAN PERMANEN</button>
+        <input type="text" id="nama-file" placeholder="Nama file simpanan...">
+        <button class="btn-main" onclick="uploadKeCloud()">🚀 SIMPAN KE ARSIP</button>
         <p id="status"></p>
     </div>
 
-    <div class="list-header">
-        <h3 style="margin: 0; font-size: 16px;">Daftar File Terarsip</h3>
-        <button class="refresh-btn" onclick="muatDaftarFile()">🔄 Refresh</button>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>Daftar Arsip:</h3>
+        <button onclick="muatDaftarFile()" style="width:auto; background:#6c757d; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">🔄 Refresh</button>
     </div>
     
     <div id="daftar-file-container">
-        <div class="loader">Menghubungkan ke gudang awan...</div>
+        <p style="text-align:center; color:#888;">Memuat gudang...</p>
     </div>
 </div>
 
 <script>
-    // DATA CLOUDINARY ANDA
-   const CLOUD_NAME = "doa3owxki"; 
+    const CLOUD_NAME = "doa3owxki"; 
     const UPLOAD_PRESET = "arsipsaya";
 
+    // 1. FUNGSI UPLOAD
     async function uploadKeCloud() {
         const fileInput = document.getElementById('pilih-file');
         const namaInput = document.getElementById('nama-file');
         const status = document.getElementById('status');
 
         if (!fileInput.files[0] || !namaInput.value) {
-            alert("Pilih file & isi nama!");
+            alert("Isi nama dan pilih file!");
             return;
         }
 
@@ -79,7 +63,7 @@
         formData.append('file', fileInput.files[0]);
         formData.append('upload_preset', UPLOAD_PRESET);
         formData.append('public_id', namaInput.value); 
-        formData.append('tags', 'arsip_pribadi'); // KUNCI DAFTAR
+        formData.append('tags', 'arsip_pribadi'); 
 
         try {
             const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/upload`, {
@@ -88,52 +72,59 @@
             });
 
             if (res.ok) {
-                status.innerText = "✅ BERHASIL TERSIMPAN!";
+                status.innerText = "✅ Berhasil Diarsipkan!";
                 status.style.color = "green";
-                setTimeout(muatDaftarFile, 2000); // Segarkan daftar
+                namaInput.value = "";
+                fileInput.value = "";
+                setTimeout(muatDaftarFile, 2000);
             } else {
-                const errData = await res.json();
-                status.innerText = "❌ Gagal: " + errData.error.message;
+                status.innerText = "❌ Gagal. Cek setting Cloudinary.";
             }
         } catch (err) {
-            status.innerText = "❌ Masalah Koneksi";
+            status.innerText = "❌ Error Koneksi.";
         }
     }
 
+    // 2. FUNGSI MUAT DAFTAR
     async function muatDaftarFile() {
         const container = document.getElementById('daftar-file-container');
-        // Cache Buster untuk memaksa data terbaru
-        const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json?nocache=${new Date().getTime()}`;
+        const url = `https://res.cloudinary.com/${CLOUD_NAME}/image/list/arsip_pribadi.json?cb=${new Date().getTime()}`;
         
         try {
             const res = await fetch(url);
-            
             if (!res.ok) {
-                // Jika error 404, artinya belum ada file dengan tag tersebut
-                container.innerHTML = "<p style='text-align:center; color:#888;'>Belum ada daftar. Coba upload 1 file baru dengan nama berbeda.</p>";
+                container.innerHTML = "<p style='text-align:center;'>Gudang kosong.</p>";
                 return;
             }
             
             const data = await res.json();
             container.innerHTML = ""; 
 
-            if (data.resources.length === 0) {
-                container.innerHTML = "<p style='text-align:center;'>Daftar kosong.</p>";
-                return;
-            }
-
             data.resources.forEach(file => {
                 const downloadUrl = `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/v${file.version}/${file.public_id}.${file.format}`;
                 const item = document.createElement('div');
                 item.className = 'file-item';
                 item.innerHTML = `
-                    <span class="file-name">${file.public_id}</span> 
-                    <a href="${downloadUrl}" class="dl-btn" target="_blank">LIHAT/AMBIL</a>
+                    <span style="font-weight:bold;">${file.public_id}</span>
+                    <div class="file-controls">
+                        <a href="${downloadUrl}" class="dl-btn" target="_blank">DOWNLOAD</a>
+                        <button class="del-btn" onclick="hapusFile('${file.public_id}')">HAPUS</button>
+                    </div>
                 `;
                 container.appendChild(item);
             });
         } catch (err) {
-            container.innerHTML = "<p style='text-align:center; color:red; font-size:12px;'>⚠️ Gagal memuat daftar. Pastikan opsi 'Resource List' di Security Cloudinary SUDAH DIMATIKAN.</p>";
+            container.innerHTML = "<p style='text-align:center; color:red;'>Gagal memuat. Pastikan 'Resource List' di Security Cloudinary Unchecked.</p>";
+        }
+    }
+
+    // 3. FUNGSI HAPUS (Catatan: Ini memerlukan pengaturan Admin API atau Manual)
+    // Karena alasan keamanan, hapus file dari website statis terbatas.
+    // Tombol ini akan mengarahkan Anda ke Media Library untuk menghapus secara aman.
+    function hapusFile(publicId) {
+        const konfirmasi = confirm(`Hapus file "${publicId}"? \n\nCatatan: Untuk keamanan arsip abadi, Anda akan diarahkan ke Media Library Cloudinary untuk menghapus secara permanen.`);
+        if (konfirmasi) {
+            window.open(`https://cloudinary.com/console/v2/media_library/search?q=${publicId}`, '_blank');
         }
     }
 
@@ -142,4 +133,3 @@
 
 </body>
 </html>
-
